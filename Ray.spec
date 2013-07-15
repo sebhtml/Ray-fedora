@@ -1,6 +1,6 @@
 Name:           Ray
 Version:        2.1.0
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        Parallel genome assemblies for parallel DNA sequencing
 
 Group:          Applications/Engineering
@@ -9,7 +9,18 @@ URL:            http://denovoassembler.sourceforge.net/
 Source0:        http://downloads.sourceforge.net/denovoassembler/%{name}-v%{version}.tar.bz2
 Patch0:         Ray.manpage.patch
 
-BuildRequires:  openmpi-devel, bzip2-devel, zlib-devel, mpich2-devel
+%global mpich2 1
+%ifarch ppc64
+%if 0%{?rhel}==5 || 0%{?rhel} == 6
+%global mpich2 0
+%endif
+%endif
+
+BuildRequires:  openmpi-devel, bzip2-devel, zlib-devel
+
+%if %mpich2
+BuildRequires:  mpich2-devel
+%endif
 
 %description
 %{name} is a parallel software that computes de novo genome assemblies with   
@@ -45,6 +56,8 @@ next-generation sequencing data.
 computers using the message-passing interface (MPI) standard.
 This sub-package enables parallel computation using openmpi.
 
+
+%if %mpich2
 %package mpich2
 Summary:        %{name} package for MPICH2
 Group:          Applications/Engineering
@@ -56,6 +69,7 @@ next-generation sequencing data.
 %{name} is written in C++ and can run in parallel on numerous interconnected 
 computers using the message-passing interface (MPI) standard.
 This sub-package enables parallel computation using mpich2.
+%endif
 
 %package doc
 Summary:        Documentation files
@@ -101,11 +115,13 @@ cp %{name}Platform/AUTHORS AUTHORS.%{name}Platform
 make clean
 %{_openmpi_unload}
 
+%if %mpich2
 %{_mpich2_load}
 make CXXFLAGS="$CXXFLAGS" HAVE_LIBBZ2=y HAVE_LIBZ=y
 cp %{name} %{name}$MPI_SUFFIX
 make clean
 %{_mpich2_unload}
+%endif
 
 %install
 rm -rf %{buildroot}
@@ -120,11 +136,13 @@ mkdir -p %{buildroot}$MPI_BIN
 install -m 0755 %{name}$MPI_SUFFIX %{buildroot}$MPI_BIN
 %{_openmpi_unload}
 
+%if %mpich2
 # Ray-mpich2
 %{_mpich2_load}
 mkdir -p %{buildroot}$MPI_BIN
 install -m 0755 %{name}$MPI_SUFFIX %{buildroot}$MPI_BIN
 %{_mpich2_unload}
+%endif
 
 # Ray-doc
 mkdir doc
@@ -150,8 +168,10 @@ rm -rf %{buildroot}
 %files openmpi
 %{_libdir}/openmpi/bin/%{name}*
 
+%if %mpich2
 %files mpich2
 %{_libdir}/mpich2/bin/%{name}*
+%endif
 
 %files doc
 %doc Documentation/*
@@ -161,6 +181,9 @@ rm -rf %{buildroot}
 %{_datadir}/%{name}/
 
 %changelog
+
+* Mon Jul 15 2014 Sébastien Boisvert <sebastien.boisvert.3@ulaval.ca> - 2.1.0-6
+- Skip mpich2 on el5 and el6 for ppc64
 
 * Fri Nov 29 2012 Sébastien Boisvert <sebastien.boisvert.3@ulaval.ca> - 2.1.0-5
 - Added a patch for the man page
